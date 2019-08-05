@@ -8,5 +8,6 @@ You first need to install the following python modules:
 # Known issues:
 
     - The labels in tables and figures should be included inside the caption in the .tex file, e.g., `\caption{\label{tableA}This is table A}`
+	- If there is a reference \ref{} inside a caption, then the filter gets confused and removes everything in the caption and replaces it with the reference number
 
 
