@@ -61,13 +61,14 @@ def replace_fig_references(key, value, fmt, meta):
     global num_refs  # Global references counter
     global references
     # sys.stderr.write('Key: %s -> %s\n' % (key, Str(value)))
-    if key in ['Para', 'Plain'] and fmt == "docx":        
+    if key in ['Para', 'Plain'] and fmt == "docx":
         for i, x in enumerate(value):
-            if re.match(r'.*ref.*', str(x).replace('\n', ' ')):
+            if re.match(r'.*reference-type.*', str(x).replace('\n', ' ')):
                 for r in references.keys():
                     # sys.stderr.write('LOOKING FOR: %s -> %s\n' % (r, Str(x)))
                     pattern_ref = re.compile('.*%s.*' % r)
                     if re.match(pattern_ref, str(x).replace('\n', ' ')):
+                        sys.stderr.write('FOUND: %s -> %s\n' % (r, Str(x)))
                         find_ref_str(x, pattern_ref, references[r])
                         value[i] = x
         return Para(value)
@@ -95,13 +96,14 @@ def process_figs(key, value, fmt, meta):
     global num_refs  # Global references counter
     global references
     if fmt == "docx" and key == "Image":
-        # sys.stderr.write('KEY: %s, VALUE: %s\n' % (key, value))
+        #  sys.stderr.write('KEY: %s, VALUE: %s\n' % (key, value))
         for i, x in enumerate(value):
             if re.match(r'.*label.*', str(x).replace('\n', ' ')):
                 num_refs += 1
                 m = re.match(r".*label.*\'(.*?)\'\]",
                              str(x[0]).replace('\n', ' '))
                 label = m.group(1)
+                # sys.stderr.write('Fig. No %s, label %s\n' % (num_refs, label))
                 references[label] = num_refs
                 replace_fig_label(x[0], num_refs)
                 value[i] = x
