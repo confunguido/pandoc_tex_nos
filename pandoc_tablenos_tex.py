@@ -63,10 +63,10 @@ def replace_table_references(key, value, fmt, meta):
     # sys.stderr.write('Key: %s -> %s\n' % (key, Str(value)))
     if key in ['Para', 'Plain'] and fmt == "docx":        
         for i, x in enumerate(value):
-            if re.match(r'.*ref.*', str(x).replace('\n', ' ')):
+            if re.match(r'.*reference-type.*', str(x).replace('\n', ' ')):
                 for r in references.keys():
                     # sys.stderr.write('LOOKING FOR: %s -> %s\n' % (r, Str(x)))
-                    pattern_ref = re.compile('.*%s.*' % r)
+                    pattern_ref = re.compile('.*?\'%s\'.*?' % r)
                     if re.match(pattern_ref, str(x).replace('\n', ' ')):
                         find_ref_str(x, pattern_ref, references[r])
                         value[i] = x

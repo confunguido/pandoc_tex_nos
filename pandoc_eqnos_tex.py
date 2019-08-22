@@ -47,7 +47,7 @@ def find_ref_str(value, pattern_ref, num_ref):
     if isinstance(value, dict):
         if 't' in value and 'c' in value:
             if value['t'] == 'Str':
-                #sys.stderr.write('find_ref_str: %s -> %s\n' % (value['c'], str(value['t'])))
+                sys.stderr.write('find_ref_str: %s -> %s\n' % (value['c'], str(value['t'])))
                 numbered_ref = '%d' % num_ref
                 value['c'] = numbered_ref.decode("utf-8")
                 return(value)
@@ -65,9 +65,9 @@ def replace_eq_references(key, value, fmt, meta):
     # sys.stderr.write('Key: %s -> %s\n' % (key, Str(value)))
     if key in ['Para', 'Plain'] and fmt == "docx":
         for i, x in enumerate(value):
-            if re.match(r'.*ref.*', str(x).replace('\n', ' ')):
+            if re.match(r'.*reference-type.*', str(x).replace('\n', ' ')):
                 for r in references.keys():
-                    pattern_ref = re.compile('.*%s.*' % r)
+                    pattern_ref = re.compile('.*?\'%s\'.*?' % r)
                     if re.match(pattern_ref, str(x).replace('\n', ' ')):
                         find_ref_str(x, pattern_ref, references[r])
                         value[i] = x
@@ -95,6 +95,7 @@ def process_equations(key, value, fmt, meta):
             references[label] = num_refs
             value[-1] += '\qquad (\\text{%d})' % num_refs
             if fmt == 'docx':
+                sys.stderr.write('process_equations: %s\n' % (label))
                 # As per http://officeopenxml.com/WPhyperlink.php
                 bookmarkstart = \
                     RawInline('openxml',

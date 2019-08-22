@@ -66,9 +66,9 @@ def replace_fig_references(key, value, fmt, meta):
             if re.match(r'.*reference-type.*', str(x).replace('\n', ' ')):
                 for r in references.keys():
                     # sys.stderr.write('LOOKING FOR: %s -> %s\n' % (r, Str(x)))
-                    pattern_ref = re.compile('.*%s.*' % r)
+                    pattern_ref = re.compile('.*?\'%s\'.*?' % r)
                     if re.match(pattern_ref, str(x).replace('\n', ' ')):
-                        sys.stderr.write('FOUND: %s -> %s\n' % (r, Str(x)))
+                        # sys.stderr.write('FOUND: %s -> %s\nMoving to find ref str\n' % (r, Str(x)))
                         find_ref_str(x, pattern_ref, references[r])
                         value[i] = x
         return Para(value)
