@@ -79,7 +79,8 @@ def replace_fig_label(value, label_num):
     if isinstance(value, dict):
         if 't' in value and 'c' in value:
             if value['t'] == 'Str':
-                sys.stderr.write('replace_fig_label: %s -> %s\n' % (value['c'], str(value['t'])))
+                sys.stderr.write('replace_fig_label: %s -> %s (Figure %d)\n'
+                                 % (value['c'], str(value['t']), label_num))
                 numbered_ref = 'Figure %d. ' % label_num
                 value['c'] = numbered_ref.decode("utf-8")
                 return(value)
