@@ -32,6 +32,8 @@ args = parser.parse_args()
 # Variables -----------------------------------------------------------
 num_refs = 0
 references = {}
+supp_enabled = False
+supp_str = ''
 
 # Variables for tracking section numbers
 numbersections = False
@@ -47,8 +49,9 @@ def find_ref_str(value, pattern_ref, num_ref):
         if 't' in value and 'c' in value:
             if value['t'] == 'Str':
                 sys.stderr.write('find_ref_str: %s -> %s\n' % (value['c'], str(value['t'])))
-                numbered_ref = '%d' % num_ref
-                value['c'] = numbered_ref.decode("utf-8")
+                numbered_ref = '%s' % num_ref
+                ##value['c'] = numbered_ref.decode("utf-8")
+                value['c'] = numbered_ref
                 return(value)
             else:
                 find_ref_str(value['c'], pattern_ref, num_ref)
@@ -79,8 +82,9 @@ def replace_table_label(value, label_num):
         if 't' in value and 'c' in value:
             if value['t'] == 'Str':
                 sys.stderr.write('replace_table_str: %s -> %s\n' % (value['c'], str(value['t'])))
-                numbered_ref = 'Table %d. ' % label_num
-                value['c'] = numbered_ref.decode("utf-8")
+                numbered_ref = 'Table %s. ' % label_num
+                ##value['c'] = numbered_ref.decode("utf-8")
+                value['c'] = numbered_ref
                 return(value)
             else:
                 replace_table_label(value['c'], label_num)
@@ -94,6 +98,15 @@ def process_tables(key, value, fmt, meta):
     # pylint: disable=global-statement
     global num_refs  # Global references counter
     global references
+    global supp_enabled
+    global supp_str
+    if fmt == "docx" and key == "Header":
+        sys.stderr.write('KEY: %s, VALUE: %s\n' % (key, value))
+        for i, x in enumerate(value):
+            if re.match(r'.*supplement.*', str(x).replace('\n', ' ')):
+                supp_enabled = True
+                supp_str = 'S'
+                num_refs = 0
     if fmt == "docx" and key == "Table":
         for i, x in enumerate(value):
             if re.match(r'.*label.*', str(x).replace('\n', ' ')):
@@ -101,8 +114,8 @@ def process_tables(key, value, fmt, meta):
                 m = re.match(r".*label.*\'(.*?)\'\]",
                              str(x[0]).replace('\n', ' '))
                 label = m.group(1)
-                references[label] = num_refs
-                replace_table_label(x[0], num_refs)
+                references[label] = '%s%d' % (supp_str, num_refs)
+                replace_table_label(x[0], '%s%d' % (supp_str, num_refs))
                 value[i] = x
         return Table(*value)
 

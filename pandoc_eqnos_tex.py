@@ -49,7 +49,9 @@ def find_ref_str(value, pattern_ref, num_ref):
             if value['t'] == 'Str':
                 sys.stderr.write('find_ref_str: %s -> %s\n' % (value['c'], str(value['t'])))
                 numbered_ref = '%d' % num_ref
-                value['c'] = numbered_ref.decode("utf-8")
+                
+                ##value['c'] = numbered_ref.decode("utf-8")
+                value['c'] = numbered_ref
                 return(value)
             else:
                 find_ref_str(value['c'], pattern_ref, num_ref)
