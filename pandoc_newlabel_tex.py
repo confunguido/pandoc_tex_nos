@@ -34,7 +34,7 @@ num_refs = 0
 references = {}
 supp_enabled = False
 supp_str = ''
-
+aux_dict = dict()
 # Variables for tracking section numbers
 numbersections = False
 
@@ -42,12 +42,10 @@ PANDOCVERSION = None
 AttrMath = None
 
 # Functions ---------------------------------------------------
-
-
-def find_ref_str(value, pattern_ref, num_ref):
+def find_ref_str(value, pattern_ref, num_ref):    
     if isinstance(value, dict):
         if 't' in value and 'c' in value:
-            if value['t'] == 'Str':
+            if value['t'] == 'Str':                
                 sys.stderr.write('find_ref_str: %s -> %s\n' % (value['c'], str(value['t'])))
                 numbered_ref = '%s' % num_ref
                 ##value['c'] = numbered_ref.decode("utf-8")
@@ -60,69 +58,21 @@ def find_ref_str(value, pattern_ref, num_ref):
         for v in value:
             find_ref_str(v, pattern_ref, num_ref)
 
-
-def replace_fig_references(key, value, fmt, meta):
-    global num_refs  # Global references counter
-    global references
-    # sys.stderr.write('Key: %s -> %s\n' % (key, Str(value)))
+def replace_newlabel_references(key, value, fmt, meta):
+    global aux_dict
     if key in ['Para', 'Plain'] and fmt == "docx":
+    #if fmt == "docx": 
         for i, x in enumerate(value):
             if re.match(r'.*reference-type.*', str(x).replace('\n', ' ')):
-                for r in references.keys():
-                    # sys.stderr.write('LOOKING FOR: %s -> %s\n' % (r, Str(x)))
+                ##sys.stderr.write('Key: %s -> %s\n' % (key, Str(value)))
+                for r in aux_dict.keys():
+                    ##sys.stderr.write('LOOKING FOR: %s -> %s\n' % (r, Str(x)))
                     pattern_ref = re.compile('.*?\'%s\'.*?' % r)
                     if re.match(pattern_ref, str(x).replace('\n', ' ')):
-                        # sys.stderr.write('FOUND: %s -> %s\nMoving to find ref str\n' % (r, Str(x)))
-                        find_ref_str(x, pattern_ref, references[r])
+                        sys.stderr.write('FOUND: %s -> %s\nMoving to find ref str\n' % (r, Str(x)))
+                        find_ref_str(x, pattern_ref, aux_dict[r])
                         value[i] = x
         return Para(value)
-
-
-def replace_fig_label(value, label_num):
-    # sys.stderr.write('REPLACE_IMG_LABEL: %s\n' % str(value))
-    if isinstance(value, dict):
-        if 't' in value and 'c' in value:
-            if value['t'] == 'Str':
-                sys.stderr.write('replace_fig_label: %s -> %s (Figure %s)\n'
-                                 % (value['c'], str(value['t']), label_num))
-                numbered_ref = 'Figure %s. ' % label_num
-                ##value['c'] = numbered_ref.decode("utf-8")
-                value['c'] = numbered_ref
-                return(value)
-            else:
-                replace_fig_label(value['c'], label_num)
-    elif isinstance(value, list):
-        for v in value:
-            replace_fig_label(v, label_num)
-
-
-# pylint: disable=unused-argument,too-many-branches
-def process_figs(key, value, fmt, meta):
-    # pylint: disable=global-statement
-    global num_refs  # Global references counter
-    global references
-    global supp_enabled
-    global supp_str
-    if fmt == "docx" and key == "Header":
-        ## sys.stderr.write('KEY: %s, VALUE: %s\n' % (key, value))
-        for i, x in enumerate(value):
-            if re.match(r'.*supp(lement|orting).*', str(x).replace('\n', ' ')):
-                supp_enabled = True
-                supp_str = 'S'
-                num_refs = 0
-    if fmt == "docx" and key == "Image":        
-        ## sys.stderr.write('KEY: %s, VALUE: %s\n' % (key, value))
-        for i, x in enumerate(value):
-            if re.match(r'.*label.*', str(x).replace('\n', ' ')):
-                num_refs += 1
-                m = re.match(r".*label.*\'(.*?)\'\]",
-                             str(x[0]).replace('\n', ' '))
-                label = m.group(1)
-                sys.stderr.write('Fig. No %s, label %s\n' % (num_refs, label))
-                references[label] = '%s%d' % (supp_str, num_refs)
-                replace_fig_label(x[0], '%s%d' % (supp_str, num_refs))
-                value[i] = x
-        return Image(*value)
 
 # Main routine ---------------------------------------------------
 
@@ -132,11 +82,11 @@ def main():
     # pylint: disable=global-statement
     global PANDOCVERSION
     global AttrMath
-
+    global aux_dict
     # Get the output format and document
     fmt = args.fmt
     doc = json.loads(STDIN.read())
-
+    
     # Initialize pandocxnos
     # pylint: disable=too-many-function-args
     PANDOCVERSION = pandocxnos.init(args.pandocversion, doc)
@@ -148,6 +98,21 @@ def main():
     meta = doc['meta'] if PANDOCVERSION >= '1.18' else doc[0]['unMeta']
     blocks = doc['blocks'] if PANDOCVERSION >= '1.18' else doc[1:]
 
+    if not ('aux' in meta):
+        quit()
+    
+    sys.stderr.write(json.dumps(meta['aux']))
+    aux_file = open(meta['aux']['c'],'r')
+    aux_data = aux_file.readlines()
+    for aa in aux_data:
+        match = re.search(r'^\\newlabel\{(.*?)\}\{\{(.*?)\}', aa)
+        if match :        
+            aux_dict[match.group(1)] = match.group(2)
+    for kk in aux_dict.keys():
+        sys.stderr.write('%s -> %s\n'%(kk, aux_dict[kk]))
+
+    ## sys.stderr.write(json.dumps(blocks))
+
     # First pass
     attach_attrs_math = attach_attrs_factory(Math, allow_space=True)
     detach_attrs_math = detach_attrs_factory(Math)
@@ -155,11 +120,11 @@ def main():
     delete_secnos = delete_secnos_factory(Math)
     altered = functools.reduce(lambda x, action: walk(x, action, fmt, meta),
                                [attach_attrs_math, insert_secnos,
-                                process_figs, delete_secnos,
+                                replace_newlabel_references, delete_secnos,
                                 detach_attrs_math], blocks)
     # Second pass
-    altered = functools.reduce(lambda x, action: walk(x, action, fmt, meta),
-                               [replace_fig_references], altered)
+    # altered = functools.reduce(lambda x, action: walk(x, action, fmt, meta),
+    #                            [replace_newlabel_references], altered)
 
     # Update the doc
     if PANDOCVERSION >= '1.18':

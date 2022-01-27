@@ -103,7 +103,7 @@ def process_tables(key, value, fmt, meta):
     if fmt == "docx" and key == "Header":
         sys.stderr.write('KEY: %s, VALUE: %s\n' % (key, value))
         for i, x in enumerate(value):
-            if re.match(r'.*supplement.*', str(x).replace('\n', ' ')):
+            if re.match(r'.*supp(lement|orting).*', str(x).replace('\n', ' ')):
                 supp_enabled = True
                 supp_str = 'S'
                 num_refs = 0
